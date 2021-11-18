@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Modal } from 'react-bootstrap';
 import cloneDeep from 'lodash/cloneDeep';
-import {getRules} from '../api';
+import {
+  addRule,
+  getRules,
+  deleteRuleById
+} from '../api';
 
 const NEW_RULE = {
   name: '',
   type: '',
-  status: '',
+  status: 'ACTIVE',
   field: '',
   weight: 0,
   conditions: [],
@@ -18,16 +22,22 @@ function Rules() {
   
   const [modalTitle, setModalTitle] = useState('New rule');
   const [show, setShowModal] = useState(false);
+  const [disabledInputs, setDisabledInputState] = useState(false);
   const handleClose = () => setShowModal(false);
 
-  useEffect(() => {
+  const getData = () => {
     getRules()
     .then((result) => {
-      setRules(result);
+      console.log('result', result);
+      setRules(result.data.payload);
     })
     .catch((error) => {
       console.log('error', error);
     });
+  };
+
+  useEffect(() => {
+    getData();
     return () => {
       setRules([]);
     }
@@ -37,12 +47,22 @@ function Rules() {
   const onShowRule = (rule) => () => {
     console.log('show rule', rule);
     setRule(rule);
+    setDisabledInputState(true);
     setShowModal(true);
     setModalTitle(`Rule ${rule.name}`);
   };
   const onDeleteRule = (rule) => () => {
     console.log('delete rule', rule);
     setRule(rule);
+    deleteRuleById(rule._id)
+    .then((result) => {
+      console.log('result', result);
+      getData();
+    })
+    .catch((error) => {
+      console.log('error', error);
+      getData();
+    });
   };
   const getActions = rule => {
     return <>
@@ -58,6 +78,7 @@ function Rules() {
     setRule(cloneDeep({...NEW_RULE, now: Date.now()}));
     setModalTitle('New rule');
     setShowModal(true);
+    setDisabledInputState(false);
   };
   const addCondition = () => {
     const changes = cloneDeep(rule);
@@ -79,7 +100,20 @@ function Rules() {
   };  
   const onSubmitModal = (event) => {
     event.preventDefault();
-    console.log('rule', rule);
+    console.log('rule', JSON.stringify(rule));
+    setDisabledInputState(true);
+    addRule(rule)
+    .then((result) => {
+      console.log('result', result);
+      setDisabledInputState(false);
+      getData();
+      setShowModal(false);
+    })
+    .catch((error) => {
+      console.log('error', error);
+      setDisabledInputState(false);
+      getData();
+    });
   };
   const data = useMemo(() => rules, [rules]);
   return (
@@ -93,7 +127,6 @@ function Rules() {
       <table className="table">
         <thead>
           <tr>
-            <th className="text-center" scope="col">ID</th>
             <th className="text-center" scope="col">Name</th>
             <th className="text-center" scope="col">Type</th>
             <th className="text-center" scope="col">Status</th>
@@ -105,9 +138,8 @@ function Rules() {
         </thead>
         <tbody>
           {
-            data.length > 0 ? data.map(item => (
-              <tr key={item.id}>
-                <td className="text-center">{item.id}</td>
+            data.length > 0 ? data.map((item, index) => (
+              <tr key={`${item.name}-${index}`}>
                 <td className="text-center">{item.name}</td>
                 <td className="text-center">{item.type}</td>
                 <td className="text-center">{item.status}</td>
@@ -126,9 +158,9 @@ function Rules() {
       </table>
       {
         rule &&
-        <Modal show={show} onHide={handleClose}>
+        <Modal show={show}>
           <form onSubmit={onSubmitModal}>
-            <Modal.Header closeButton>
+            <Modal.Header>
               <Modal.Title>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
@@ -139,7 +171,8 @@ function Rules() {
                   id="nameInput"
                   placeholder="Rule name"
                   onChange={onChangeInput('name')}
-                  value={rule.name}/>
+                  value={rule.name}
+                  disabled={disabledInputs}/>
                 <label htmlFor="nameInput">Name</label>
               </div>
               <div className="form-floating mb-3">
@@ -149,7 +182,8 @@ function Rules() {
                   id="typeInput"
                   placeholder="Rule type"
                   onChange={onChangeInput('type')}
-                  value={rule.type}/>
+                  value={rule.type}
+                  disabled={disabledInputs}/>
                 <label htmlFor="typeInput">Type</label>
               </div>
               <div className="form-floating mb-3">
@@ -158,7 +192,8 @@ function Rules() {
                   id="statusInput"
                   aria-label="Status input"
                   onChange={onChangeInput('status')}
-                  value={rule.status}>
+                  value={rule.status}
+                  disabled={disabledInputs}>
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
                 </select>
@@ -171,7 +206,8 @@ function Rules() {
                   id="fieldInput"
                   placeholder="Rule field"
                   onChange={onChangeInput('field')}
-                  value={rule.field}/>
+                  value={rule.field}
+                  disabled={disabledInputs}/>
                 <label htmlFor="fieldInput">Field</label>
               </div>
               <div className="form-floating mb-3">
@@ -181,16 +217,21 @@ function Rules() {
                   id="weightInput"
                   placeholder="Rule weight"
                   onChange={onChangeInput('weight')}
-                  value={rule.weight}/>
+                  value={rule.weight}
+                  disabled={disabledInputs}/>
                 <label htmlFor="weightInput">Weight</label>
               </div>
               <p>Conditions:</p>
-              <button
-                type="button"
-                className="btn btn-info"
-                onClick={addCondition}>
-                <i className="bi bi-plus-lg"></i>
-              </button>
+              {
+                !rule._id &&
+                <button
+                  type="button"
+                  className="btn btn-info"
+                  onClick={addCondition}
+                  disabled={disabledInputs}>
+                  <i className="bi bi-plus-lg"></i>
+                </button>
+              }
               {
                 rule.conditions.length > 0 && rule.conditions.map((item, index) => <div key={`${rule.now}-${index}`}>
                   <hr/>
@@ -201,7 +242,8 @@ function Rules() {
                       id="valueInput"
                       placeholder="Condition value"
                       onChange={onChangeInput('conditions', 'value', index)}
-                      value={item.value}/>
+                      value={item.value}
+                      disabled={disabledInputs}/>
                     <label htmlFor="valueInput">Value</label>
                   </div>
                   <div className="form-floating mb-3">
@@ -211,7 +253,8 @@ function Rules() {
                       id="weightInput"
                       placeholder="Condition weight"
                       onChange={onChangeInput('conditions', 'weight', index)}
-                      value={item.weight}/>
+                      value={item.weight}
+                      disabled={disabledInputs}/>
                     <label htmlFor="weightInput">Weight</label>
                   </div>
                 </div>)
@@ -223,9 +266,24 @@ function Rules() {
                 onClick={handleClose}>
                 Close
               </Button>
-              <Button variant="primary" type="submit">
-                Save Changes
-              </Button>
+              {
+                !rule._id &&
+                <Button
+                  variant="primary"
+                  type="submit"
+                  disabled={disabledInputs}>
+                    {
+                      disabledInputs ?
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span className="visually-hidden"></span>
+                        Loading...
+                      </>
+                      :
+                      'Save Changes'
+                    }
+                </Button>
+              }
             </Modal.Footer>
           </form>
         </Modal>
