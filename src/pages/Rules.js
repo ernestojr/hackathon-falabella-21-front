@@ -60,15 +60,26 @@ function Rules() {
     setShowModal(true);
   };
   const addCondition = () => {
-    console.log('Here');
-    rule.conditions.push({
+    const changes = cloneDeep(rule);
+    changes.conditions.push({
       value: '',
       weight: 0,
     });
-    setRule(cloneDeep(rule));
+    setRule(changes);
   };
   const onChangeInput = (field, subField, pos) => (event) => {
-
+    const changes = cloneDeep(rule);
+    const value = event.target.value;
+    if (field === 'conditions') {
+      changes.conditions[pos][subField] = value;
+    } else {
+      changes[field] = value;
+    }
+    setRule(changes);
+  };  
+  const onSubmitModal = (event) => {
+    event.preventDefault();
+    console.log('rule', rule);
   };
   return (
     <main>
@@ -115,18 +126,19 @@ function Rules() {
       {
         rule &&
         <Modal show={show} onHide={handleClose}>
-          <Modal.Header closeButton>
-            <Modal.Title>{modalTitle}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <form>
+          <form onSubmit={onSubmitModal}>
+            <Modal.Header closeButton>
+              <Modal.Title>{modalTitle}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
               <div className="form-floating mb-3">
                 <input
                   type="text"
                   className="form-control"
                   id="nameInput"
                   placeholder="Rule name"
-                  onChange={onChangeInput('name')}/>
+                  onChange={onChangeInput('name')}
+                  value={rule.name}/>
                 <label htmlFor="nameInput">Name</label>
               </div>
               <div className="form-floating mb-3">
@@ -135,7 +147,8 @@ function Rules() {
                   className="form-control"
                   id="typeInput"
                   placeholder="Rule type"
-                  onChange={onChangeInput('type')}/>
+                  onChange={onChangeInput('type')}
+                  value={rule.type}/>
                 <label htmlFor="typeInput">Type</label>
               </div>
               <div className="form-floating mb-3">
@@ -143,7 +156,8 @@ function Rules() {
                   className="form-select"
                   id="statusInput"
                   aria-label="Status input"
-                  onChange={onChangeInput('status')}>
+                  onChange={onChangeInput('status')}
+                  value={rule.status}>
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
                 </select>
@@ -155,7 +169,8 @@ function Rules() {
                   className="form-control"
                   id="fieldInput"
                   placeholder="Rule field"
-                  onChange={onChangeInput('field')}/>
+                  onChange={onChangeInput('field')}
+                  value={rule.field}/>
                 <label htmlFor="fieldInput">Field</label>
               </div>
               <div className="form-floating mb-3">
@@ -164,7 +179,8 @@ function Rules() {
                   className="form-control"
                   id="weightInput"
                   placeholder="Rule weight"
-                  onChange={onChangeInput('weight')}/>
+                  onChange={onChangeInput('weight')}
+                  value={rule.weight}/>
                 <label htmlFor="weightInput">Weight</label>
               </div>
               <p>Conditions:</p>
@@ -183,7 +199,8 @@ function Rules() {
                       className="form-control"
                       id="valueInput"
                       placeholder="Condition value"
-                      onChange={onChangeInput('conditions', 'value', index)}/>
+                      onChange={onChangeInput('conditions', 'value', index)}
+                      value={item.value}/>
                     <label htmlFor="valueInput">Value</label>
                   </div>
                   <div className="form-floating mb-3">
@@ -192,21 +209,24 @@ function Rules() {
                       className="form-control"
                       id="weightInput"
                       placeholder="Condition weight"
-                      onChange={onChangeInput('conditions', 'weight', index)}/>
+                      onChange={onChangeInput('conditions', 'weight', index)}
+                      value={item.weight}/>
                     <label htmlFor="weightInput">Weight</label>
                   </div>
                 </div>)
               }
-            </form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose}>
-              Close
-            </Button>
-            <Button variant="primary" onClick={handleClose}>
-              Save Changes
-            </Button>
-          </Modal.Footer>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary"
+                type="button"
+                onClick={handleClose}>
+                Close
+              </Button>
+              <Button variant="primary" type="submit">
+                Save Changes
+              </Button>
+            </Modal.Footer>
+          </form>
         </Modal>
       }
     </main>
