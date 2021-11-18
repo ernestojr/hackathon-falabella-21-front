@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Modal } from 'react-bootstrap';
 import cloneDeep from 'lodash/cloneDeep';
 import {getRules} from '../api';
@@ -55,7 +55,7 @@ function Rules() {
     </>
   };
   const onCreateNewRule = () => {
-    setRule(cloneDeep(NEW_RULE));
+    setRule(cloneDeep({...NEW_RULE, now: Date.now()}));
     setModalTitle('New rule');
     setShowModal(true);
   };
@@ -81,6 +81,7 @@ function Rules() {
     event.preventDefault();
     console.log('rule', rule);
   };
+  const data = useMemo(() => rules, [rules]);
   return (
     <main>
       <div>
@@ -104,16 +105,16 @@ function Rules() {
         </thead>
         <tbody>
           {
-            rules.length > 0 ? rules.map(rule => (
-              <tr key={rule.id}>
-                <td className="text-center">{rule.id}</td>
-                <td className="text-center">{rule.name}</td>
-                <td className="text-center">{rule.type}</td>
-                <td className="text-center">{rule.status}</td>
-                <td className="text-center">{rule.field}</td>
-                <td className="text-center">{rule.weight}</td>
-                <td className="text-center">{rule.conditions.length}</td>
-                <td className="text-center">{getActions(rule)}</td>
+            data.length > 0 ? data.map(item => (
+              <tr key={item.id}>
+                <td className="text-center">{item.id}</td>
+                <td className="text-center">{item.name}</td>
+                <td className="text-center">{item.type}</td>
+                <td className="text-center">{item.status}</td>
+                <td className="text-center">{item.field}</td>
+                <td className="text-center">{item.weight}</td>
+                <td className="text-center">{item.conditions.length}</td>
+                <td className="text-center">{getActions(item)}</td>
               </tr>
             ))
             :
@@ -191,7 +192,7 @@ function Rules() {
                 <i className="bi bi-plus-lg"></i>
               </button>
               {
-                rule.conditions.length > 0 && rule.conditions.map((item, index) => <div key={`${Date.now()}-${index}`}>
+                rule.conditions.length > 0 && rule.conditions.map((item, index) => <div key={`${rule.now}-${index}`}>
                   <hr/>
                   <div className="form-floating mb-3">
                     <input
